@@ -416,6 +416,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         child: NotificationCard(
                           notification: notification,
                           showDeleteButton: true,
+                          cardStyle: NotificationCardStyle.compact,
                           onDelete: () async {
                             final confirmed = await ConfirmDialog.show(
                               context: context,

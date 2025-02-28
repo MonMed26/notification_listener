@@ -186,6 +186,7 @@ class _NotificationListPageState extends State<NotificationListPage>
               return NotificationCard(
                 notification: notification,
                 showDeleteButton: false, // 不显示删除按钮
+                cardStyle: NotificationCardStyle.large, // 使用大型卡片样式
               );
             },
           ),
