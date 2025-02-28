@@ -35,13 +35,18 @@ class NotificationItem {
     );
   }
 
-  // 用于通知去重和更新
+  // 使用 postTime + id 作为主键来判断通知唯一性
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is NotificationItem && other.key == key;
+    return other is NotificationItem && 
+           other.id == id && 
+           other.postTime == postTime;
   }
 
   @override
-  int get hashCode => key.hashCode;
+  int get hashCode => postTime.hashCode ^ id.hashCode;
+  
+  // 获取通知的唯一标识符
+  String get uniqueId => '${postTime}_$id';
 } 

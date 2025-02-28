@@ -50,6 +50,22 @@ class NotificationPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Event
                 result.success(jsonArray.toString())
             }
             
+            "deleteNotification" -> {
+                val id = call.argument<Int>("id")
+                val postTime = call.argument<Long>("postTime")
+                if (id != null && postTime != null) {
+                    NotificationService.deleteNotification(id, postTime) 
+                    result.success(true)
+                } else {
+                    result.error("INVALID_ARGUMENTS", "需要有效的id和postTime", null)
+                }
+            }
+
+            "deleteAllNotifications" -> {
+                NotificationService.deleteAllNotifications()
+                result.success(true)
+            }
+            
             else -> {
                 result.notImplemented()
             }

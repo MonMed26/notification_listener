@@ -277,7 +277,7 @@ class _NotificationListPageState extends State<NotificationListPage> with Widget
             itemBuilder: (context, index) {
               final notification = _filteredNotifications[index];
               return Dismissible(
-                key: Key(notification.key),
+                key: Key(notification.uniqueId),
                 background: Container(
                   color: Colors.red,
                   alignment: Alignment.centerRight,
@@ -305,7 +305,7 @@ class _NotificationListPageState extends State<NotificationListPage> with Widget
                   );
                 },
                 onDismissed: (direction) {
-                  _notificationService.deleteNotification(notification.key);
+                  _notificationService.deleteNotification(notification.uniqueId);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('通知已删除')),
                   );
@@ -362,7 +362,7 @@ class _NotificationListPageState extends State<NotificationListPage> with Widget
                         );
                         
                         if (confirmed == true) {
-                          _notificationService.deleteNotification(notification.key);
+                          _notificationService.deleteNotification(notification.uniqueId);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('通知已删除')),
                           );

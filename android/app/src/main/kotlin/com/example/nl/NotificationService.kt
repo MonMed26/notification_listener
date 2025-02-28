@@ -28,6 +28,20 @@ class NotificationService : NotificationListenerService() {
         fun getAllNotifications(): List<JSONObject> {
             return notificationList
         }
+        
+        fun deleteNotification(id: Int, postTime: Long) {
+            synchronized(notificationList) {
+                notificationList.removeAll { 
+                    it.getInt("id") == id && it.getLong("postTime") == postTime 
+                }
+            }
+        }
+
+        fun deleteAllNotifications() {
+            synchronized(notificationList) {
+                notificationList.clear()
+            }
+        }
     }
     
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -53,7 +67,8 @@ class NotificationService : NotificationListenerService() {
             // 创建通知数据对象
             val notificationData = JSONObject().apply {
                 put("id", sbn.id)
-                put("key", sbn.key)
+                // 使用 postTime_id 作为通知的 key
+                put("key", "${sbn.postTime}_${sbn.id}")
                 put("title", title)
                 put("text", text)
                 put("packageName", packageName)
@@ -63,11 +78,16 @@ class NotificationService : NotificationListenerService() {
                 put("timestamp", System.currentTimeMillis())
                 put("eventType", "posted")
             }
+
+            // 打印通知数据
+            Log.d(TAG, "通知数据: $notificationData")
             
-            // 更新通知列表
+            // 更新通知列表，使用 postTime 和 id 来确定通知的唯一性
             synchronized(notificationList) {
                 // 检查是否已存在相同通知，如存在则更新
-                val existingIndex = notificationList.indexOfFirst { it.getString("key") == sbn.key }
+                val existingIndex = notificationList.indexOfFirst { 
+                    it.getInt("id") == sbn.id && it.getLong("postTime") == sbn.postTime 
+                }
                 if (existingIndex >= 0) {
                     notificationList[existingIndex] = notificationData
                 } else {

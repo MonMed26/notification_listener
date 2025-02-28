@@ -10,8 +10,10 @@ class NotificationService {
   static const EventChannel _eventChannel = EventChannel('notification_events');
 
   // 通知流控制器
-  final _notificationsController = StreamController<NotificationItem>.broadcast();
-  Stream<NotificationItem> get notificationStream => _notificationsController.stream;
+  final _notificationsController =
+      StreamController<NotificationItem>.broadcast();
+  Stream<NotificationItem> get notificationStream =>
+      _notificationsController.stream;
 
   // 当前通知列表
   final List<NotificationItem> _notifications = [];
@@ -62,9 +64,11 @@ class NotificationService {
   // 获取当前所有通知
   Future<void> _fetchCurrentNotifications() async {
     try {
-      final String notificationsJson = await _channel.invokeMethod('getAllNotifications');
+      final String notificationsJson = await _channel.invokeMethod(
+        'getAllNotifications',
+      );
       final List<dynamic> notificationsList = jsonDecode(notificationsJson);
-      
+
       for (final item in notificationsList) {
         final notification = NotificationItem.fromJson(item);
         _updateNotificationsList(notification);
@@ -76,33 +80,39 @@ class NotificationService {
 
   // 监听新通知
   void _listenForNotifications() {
-    _eventChannel.receiveBroadcastStream().listen((dynamic event) {
-      try {
-        final Map<String, dynamic> json = jsonDecode(event);
-        final notification = NotificationItem.fromJson(json);
-        
-        if (notification.eventType == 'posted') {
-          _updateNotificationsList(notification);
-        } else if (notification.eventType == 'removed') {
-          _removeNotification(notification.key);
+    _eventChannel.receiveBroadcastStream().listen(
+      (dynamic event) {
+        try {
+          final Map<String, dynamic> json = jsonDecode(event);
+          final notification = NotificationItem.fromJson(json);
+
+          if (notification.eventType == 'posted') {
+            _updateNotificationsList(notification);
+          } else if (notification.eventType == 'removed') {
+            _removeNotification(notification.key);
+          }
+
+          // 发布到流
+          _notificationsController.add(notification);
+
+          // 保存通知列表
+          _saveNotifications();
+        } catch (e) {
+          print('处理通知事件时出错: $e');
         }
-        
-        // 发布到流
-        _notificationsController.add(notification);
-        
-        // 保存通知列表
-        _saveNotifications();
-      } catch (e) {
-        print('处理通知事件时出错: $e');
-      }
-    }, onError: (dynamic error) {
-      print('通知监听错误: $error');
-    });
+      },
+      onError: (dynamic error) {
+        print('通知监听错误: $error');
+      },
+    );
   }
 
   // 更新通知列表
   void _updateNotificationsList(NotificationItem notification) {
-    final index = _notifications.indexWhere((n) => n.key == notification.key);
+    // 使用 postTime 和 id 的组合查找通知
+    final index = _notifications.indexWhere(
+      (n) => n.id == notification.id && n.postTime == notification.postTime,
+    );
     if (index >= 0) {
       _notifications[index] = notification;
     } else {
@@ -112,13 +122,48 @@ class NotificationService {
 
   // 从列表中移除通知
   void _removeNotification(String key) {
-    _notifications.removeWhere((n) => n.key == key);
+    // 获取通知的 ID 和 postTime (如果 key 的格式是 "postTime_id")
+    final parts = key.split('_');
+    if (parts.length == 2) {
+      try {
+        final postTime = int.parse(parts[0]);
+        final id = int.parse(parts[1]);
+        _notifications.removeWhere((n) => n.id == id && n.postTime == postTime);
+      } catch (e) {
+        // 如果解析失败，回退到使用 key 删除
+        _notifications.removeWhere((n) => n.key == key);
+      }
+    } else {
+      // 向后兼容：使用 key 删除
+      _notifications.removeWhere((n) => n.key == key);
+    }
     _saveNotifications(); // 删除后保存更改
   }
 
   // 删除单个通知
   Future<void> deleteNotification(String key) async {
-    _notifications.removeWhere((n) => n.key == key);
+    // 获取通知的 ID 和 postTime (如果 key 的格式是 "postTime_id")
+    final parts = key.split('_');
+    if (parts.length == 2) {
+      try {
+        final postTime = int.parse(parts[0]);
+        final id = int.parse(parts[1]);
+        _notifications.removeWhere((n) => n.id == id && n.postTime == postTime);
+
+        // 通知 Android 端删除对应通知
+        await _channel.invokeMethod('deleteNotification', {
+          'id': id,
+          'postTime': postTime,
+        });
+      } catch (e) {
+        // 如果解析失败，回退到使用 key 删除
+        _notifications.removeWhere((n) => n.key == key);
+      }
+    } else {
+      // 向后兼容：使用 key 删除
+      _notifications.removeWhere((n) => n.key == key);
+    }
+
     await _saveNotifications();
     // 通知流发送删除事件
     final deleteEvent = NotificationItem(
@@ -140,35 +185,46 @@ class NotificationService {
     _notifications.clear();
     await _saveNotifications();
     // 通知UI已清空
-    _notificationsController.add(NotificationItem(
-      id: 0,
-      key: 'clear_all',
-      title: '',
-      text: '',
-      packageName: '',
-      appName: '',
-      postTime: 0,
-      isClearable: true,
-      eventType: 'clear_all',
-    ));
+    _notificationsController.add(
+      NotificationItem(
+        id: 0,
+        key: 'clear_all',
+        title: '',
+        text: '',
+        packageName: '',
+        appName: '',
+        postTime: 0,
+        isClearable: true,
+        eventType: 'clear_all',
+      ),
+    );
+
+    // 通知 Android 端删除所有通知
+    await _channel.invokeMethod('deleteAllNotifications');
   }
 
   // 保存通知到本地存储
   Future<void> _saveNotifications() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final notificationsJson = jsonEncode(_notifications.map((n) => {
-        'id': n.id,
-        'key': n.key,
-        'title': n.title,
-        'text': n.text,
-        'packageName': n.packageName,
-        'appName': n.appName,
-        'postTime': n.postTime,
-        'isClearable': n.isClearable,
-        'eventType': n.eventType,
-      }).toList());
-      
+      final notificationsJson = jsonEncode(
+        _notifications
+            .map(
+              (n) => {
+                'id': n.id,
+                'key': n.key,
+                'title': n.title,
+                'text': n.text,
+                'packageName': n.packageName,
+                'appName': n.appName,
+                'postTime': n.postTime,
+                'isClearable': n.isClearable,
+                'eventType': n.eventType,
+              },
+            )
+            .toList(),
+      );
+
       await prefs.setString('saved_notifications', notificationsJson);
     } catch (e) {
       print('保存通知时出错: $e');
@@ -180,10 +236,10 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final notificationsJson = prefs.getString('saved_notifications');
-      
+
       if (notificationsJson != null) {
         final List<dynamic> notificationsList = jsonDecode(notificationsJson);
-        
+
         _notifications.clear();
         for (final item in notificationsList) {
           _notifications.add(NotificationItem.fromJson(item));
@@ -198,4 +254,4 @@ class NotificationService {
   void dispose() {
     _notificationsController.close();
   }
-} 
+}
