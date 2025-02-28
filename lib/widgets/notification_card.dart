@@ -77,14 +77,14 @@ class NotificationCard extends StatelessWidget {
   // 大型卡片 (新样式)
   Widget _buildLargeCard(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -93,15 +93,15 @@ class NotificationCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     backgroundColor: Theme.of(context).primaryColor,
-                    radius: 24,
+                    radius: 28,
                     child: Text(
                       notification.appName.isNotEmpty
                           ? notification.appName[0]
                           : '?',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      style: TextStyle(color: Colors.white, fontSize: 20),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,18 +109,18 @@ class NotificationCard extends StatelessWidget {
                         Text(
                           notification.appName,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             color: Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        SizedBox(height: 6),
                         Text(
                           notification.title.isNotEmpty
                               ? notification.title
                               : '无标题',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
@@ -131,28 +131,32 @@ class NotificationCard extends StatelessWidget {
                   ),
                   if (showDeleteButton)
                     IconButton(
-                      icon: Icon(Icons.delete_outline, color: Colors.grey),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: Colors.grey,
+                        size: 24,
+                      ),
                       onPressed: onDelete,
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                     ),
                 ],
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 16),
               Text(
                 notification.text.isNotEmpty ? notification.text : '无内容',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 18),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
                     _getRelativeTime(notification.postTime),
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 16,
                       color: Colors.grey[600],
                       fontStyle: FontStyle.italic,
                     ),
