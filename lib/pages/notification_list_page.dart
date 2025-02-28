@@ -47,7 +47,8 @@ class _NotificationListPageState extends State<NotificationListPage> with Widget
     // 监听新通知
     _notificationSubscription = _notificationService.notificationStream.listen((notification) {
       setState(() {
-        _notifications = List.from(_notificationService.notifications);
+        _notifications = List.from(_notificationService.notifications)
+          ..sort((a, b) => b.postTime.compareTo(a.postTime));
       });
     });
   }
@@ -62,7 +63,8 @@ class _NotificationListPageState extends State<NotificationListPage> with Widget
     if (hasPermission) {
       await _notificationService.init();
       setState(() {
-        _notifications = List.from(_notificationService.notifications);
+        _notifications = List.from(_notificationService.notifications)
+          ..sort((a, b) => b.postTime.compareTo(a.postTime));
       });
     }
   }
