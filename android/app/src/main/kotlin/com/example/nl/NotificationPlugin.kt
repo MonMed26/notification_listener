@@ -90,6 +90,16 @@ class NotificationPlugin : FlutterPlugin, MethodCallHandler, EventChannel.Stream
                 getInstalledApps(result)
             }
             
+            "setSelectedApps" -> {
+                val selectedApps = call.arguments as? List<String>
+                if (selectedApps != null) {
+                    NotificationService.setSelectedApps(selectedApps)
+                    result.success(true)
+                } else {
+                    result.error("INVALID_ARGUMENTS", "需要有效的应用包名列表", null)
+                }
+            }
+            
             else -> {
                 result.notImplemented()
             }

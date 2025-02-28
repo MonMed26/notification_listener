@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
 import '../services/notification_service.dart';
+import '../services/app_service.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/empty_notification_view.dart';
 import 'dart:async';
@@ -13,6 +14,7 @@ class NotificationListPage extends StatefulWidget {
 class _NotificationListPageState extends State<NotificationListPage>
     with WidgetsBindingObserver {
   final NotificationService _notificationService = NotificationService();
+  final AppService _appService = AppService();
   StreamSubscription? _notificationSubscription;
   List<NotificationItem> _notifications = [];
   List<NotificationItem> _filteredNotifications = [];
@@ -69,6 +71,9 @@ class _NotificationListPageState extends State<NotificationListPage>
 
   Future<void> _initializeNotificationService() async {
     await _checkPermissionAndInitialize();
+
+    // 同步选中的应用到原生端
+    await _appService.syncSelectedAppsToNative();
 
     // 监听新通知
     _notificationSubscription = _notificationService.notificationStream.listen((

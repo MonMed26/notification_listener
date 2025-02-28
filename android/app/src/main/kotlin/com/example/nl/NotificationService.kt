@@ -25,6 +25,25 @@ class NotificationService : NotificationListenerService() {
         // 保存通知列表，用于 Flutter 端查询
         private val notificationList = mutableListOf<JSONObject>()
         
+        // 保存用户选择的应用包名列表
+        private val selectedApps = mutableListOf<String>()
+        
+        fun setSelectedApps(packageNames: List<String>) {
+            synchronized(selectedApps) {
+                selectedApps.clear()
+                selectedApps.addAll(packageNames)
+                Log.d(TAG, "已设置选中的应用列表: $selectedApps")
+            }
+        }
+        
+        // 检查应用是否被选中
+        fun isAppSelected(packageName: String): Boolean {
+            synchronized(selectedApps) {
+                // 如果选中列表为空，则默认接收所有应用的通知
+                return selectedApps.isEmpty() || selectedApps.contains(packageName)
+            }
+        }
+        
         fun getAllNotifications(): List<JSONObject> {
             return notificationList
         }
@@ -46,6 +65,12 @@ class NotificationService : NotificationListenerService() {
     
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         Log.d(TAG, "收到通知: ${sbn.packageName}")
+        
+        // 检查通知应用是否在选定列表中
+        if (!isAppSelected(sbn.packageName)) {
+            Log.d(TAG, "忽略非选定应用的通知: ${sbn.packageName}")
+            return
+        }
         
         try {
             val notification = sbn.notification

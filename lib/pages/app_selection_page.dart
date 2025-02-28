@@ -73,6 +73,8 @@ class _AppSelectionPageState extends State<AppSelectionPage> {
   void _saveSelectedApps() async {
     try {
       await _appService.saveSelectedApps(_selectedApps.toList());
+      // 同步选中的应用到原生端
+      await _appService.syncSelectedAppsToNative();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
