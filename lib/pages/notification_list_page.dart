@@ -105,6 +105,11 @@ class _NotificationListPageState extends State<NotificationListPage>
     Navigator.pushNamed(context, '/statistics');
   }
 
+  // 导航到设置页面
+  void _navigateToSettings() {
+    Navigator.pushNamed(context, '/settings');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +124,11 @@ class _NotificationListPageState extends State<NotificationListPage>
             icon: Icon(Icons.bar_chart),
             onPressed: _navigateToStatistics,
             tooltip: '查看统计',
+          ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: _navigateToSettings,
+            tooltip: '设置',
           ),
         ],
       ),

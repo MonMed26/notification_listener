@@ -184,6 +184,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
               icon: Icon(Icons.delete_sweep),
               onPressed: _showClearConfirmDialog,
             ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+            tooltip: '设置',
+          ),
         ],
       ),
       body: _buildStatisticsView(),
