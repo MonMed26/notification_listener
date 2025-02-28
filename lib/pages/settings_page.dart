@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import '../services/app_service.dart';
+import 'app_selection_page.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({Key? key}) : super(key: key);
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
   final NotificationService _notificationService = NotificationService();
+  final AppService _appService = AppService();
   bool _hasPermission = false;
   bool _isLoading = true;
+  List<String> _selectedApps = [];
 
   @override
   void initState() {
     super.initState();
     _checkPermission();
+    _loadSelectedApps();
   }
 
   Future<void> _checkPermission() async {
@@ -31,6 +38,36 @@ class _SettingsPageState extends State<SettingsPage> {
     await _notificationService.openNotificationSettings();
   }
 
+  Future<void> _loadSelectedApps() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final selectedApps = await _appService.getSelectedApps();
+      setState(() {
+        _selectedApps = selectedApps;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('加载已选应用失败: $e')));
+    }
+  }
+
+  void _openAppSelectionPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AppSelectionPage()),
+    );
+    // 返回后重新加载已选应用
+    _loadSelectedApps();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,6 +80,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildPermissionSection(),
                   Divider(),
                   _buildAboutSection(),
+                  ListTile(
+                    title: const Text('选择需要读取通知的应用'),
+                    subtitle:
+                        _isLoading
+                            ? const Text('加载中...')
+                            : Text(
+                              _selectedApps.isEmpty
+                                  ? '未选择任何应用'
+                                  : '已选择 ${_selectedApps.length} 个应用',
+                            ),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: _openAppSelectionPage,
+                  ),
                 ],
               ),
     );
