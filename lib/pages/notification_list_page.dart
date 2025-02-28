@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
 import '../services/notification_service.dart';
+import '../widgets/notification_card.dart';
+import '../widgets/empty_notification_view.dart';
 import 'dart:async';
 
 class NotificationListPage extends StatefulWidget {
@@ -153,19 +155,7 @@ class _NotificationListPageState extends State<NotificationListPage>
 
   Widget _buildNotificationList() {
     if (_filteredNotifications.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              '今日暂无通知',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      );
+      return EmptyNotificationView(message: '今日暂无通知');
     }
 
     return Column(
@@ -193,140 +183,15 @@ class _NotificationListPageState extends State<NotificationListPage>
             itemCount: _filteredNotifications.length,
             itemBuilder: (context, index) {
               final notification = _filteredNotifications[index];
-              return Dismissible(
-                key: Key(notification.uniqueId),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (direction) async {
-                  return await showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          title: Text('删除通知'),
-                          content: Text('确定要删除这条通知记录吗？'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: Text('取消'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text('确定'),
-                            ),
-                          ],
-                        ),
-                  );
-                },
-                onDismissed: (direction) {
-                  _notificationService.deleteNotification(
-                    notification.uniqueId,
-                  );
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('通知已删除')));
-                },
-                child: Card(
-                  margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      child: Text(
-                        notification.appName.isNotEmpty
-                            ? notification.appName[0]
-                            : '?',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    title: Text(
-                      notification.title.isNotEmpty
-                          ? notification.title
-                          : '无标题',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          notification.text.isNotEmpty
-                              ? notification.text
-                              : '无内容',
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          '应用: ${notification.appName}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        Text(
-                          '时间: ${_formatTime(notification.postTime)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    isThreeLine: true,
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete_outline, color: Colors.grey),
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: Text('删除通知'),
-                                content: Text('确定要删除这条通知记录吗？'),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(false),
-                                    child: Text('取消'),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(true),
-                                    child: Text('确定'),
-                                  ),
-                                ],
-                              ),
-                        );
-
-                        if (confirmed == true) {
-                          _notificationService.deleteNotification(
-                            notification.uniqueId,
-                          );
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('通知已删除')));
-                        }
-                      },
-                    ),
-                  ),
-                ),
+              return NotificationCard(
+                notification: notification,
+                showDeleteButton: false, // 不显示删除按钮
               );
             },
           ),
         ),
       ],
     );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
-  String _formatTime(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
   }
 
   Future<void> _openSettings() async {

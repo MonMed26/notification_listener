@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
 import '../services/notification_service.dart';
+import '../widgets/notification_card.dart';
+import '../widgets/empty_notification_view.dart';
+import '../widgets/confirm_dialog.dart';
+import '../utils/date_formatter.dart';
 import 'dart:async';
 
 class StatisticsPage extends StatefulWidget {
@@ -199,7 +203,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 Expanded(
                   child: Text(
-                    '日期筛选: ${_formatDate(_startDate)} 至 ${_formatDate(_endDate)}',
+                    '日期筛选: ${DateFormatter.formatDate(_startDate)} 至 ${DateFormatter.formatDate(_endDate)}',
                     style: TextStyle(fontSize: 14),
                   ),
                 ),
@@ -257,20 +261,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           if (_isFilterActive || _selectedApp != null) filterInfo,
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    _isFilterActive || _selectedApp != null
-                        ? '筛选条件下暂无通知'
-                        : '暂无通知',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
+            child: EmptyNotificationView(
+              message:
+                  _isFilterActive || _selectedApp != null
+                      ? '筛选条件下暂无通知'
+                      : '暂无通知',
             ),
           ),
         ],
@@ -400,26 +395,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         ),
                         direction: DismissDirection.endToStart,
                         confirmDismiss: (direction) async {
-                          return await showDialog(
+                          return await ConfirmDialog.show(
                             context: context,
-                            builder:
-                                (context) => AlertDialog(
-                                  title: Text('删除通知'),
-                                  content: Text('确定要删除这条通知记录吗？'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed:
-                                          () =>
-                                              Navigator.of(context).pop(false),
-                                      child: Text('取消'),
-                                    ),
-                                    TextButton(
-                                      onPressed:
-                                          () => Navigator.of(context).pop(true),
-                                      child: Text('确定'),
-                                    ),
-                                  ],
-                                ),
+                            title: '删除通知',
+                            content: '确定要删除这条通知记录吗？',
                           );
                         },
                         onDismissed: (direction) {
@@ -434,99 +413,29 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             context,
                           ).showSnackBar(SnackBar(content: Text('通知已删除')));
                         },
-                        child: Card(
-                          margin: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              child: Text(
-                                notification.appName.isNotEmpty
-                                    ? notification.appName[0]
-                                    : '?',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                            title: Text(
-                              notification.title.isNotEmpty
-                                  ? notification.title
-                                  : '无标题',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  notification.text.isNotEmpty
-                                      ? notification.text
-                                      : '无内容',
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  '应用: ${notification.appName}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                Text(
-                                  '时间: ${_formatTime(notification.postTime)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            isThreeLine: true,
-                            trailing: IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder:
-                                      (context) => AlertDialog(
-                                        title: Text('删除通知'),
-                                        content: Text('确定要删除这条通知记录吗？'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.of(
-                                                  context,
-                                                ).pop(false),
-                                            child: Text('取消'),
-                                          ),
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.of(
-                                                  context,
-                                                ).pop(true),
-                                            child: Text('确定'),
-                                          ),
-                                        ],
-                                      ),
-                                );
+                        child: NotificationCard(
+                          notification: notification,
+                          showDeleteButton: true,
+                          onDelete: () async {
+                            final confirmed = await ConfirmDialog.show(
+                              context: context,
+                              title: '删除通知',
+                              content: '确定要删除这条通知记录吗？',
+                            );
 
-                                if (confirmed == true) {
-                                  _notificationService.deleteNotification(
-                                    notification.uniqueId,
-                                  );
-                                  setState(() {
-                                    _filteredNotifications.removeAt(index);
-                                    _notifications.remove(notification);
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('通知已删除')),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
+                            if (confirmed == true) {
+                              _notificationService.deleteNotification(
+                                notification.uniqueId,
+                              );
+                              setState(() {
+                                _filteredNotifications.removeAt(index);
+                                _notifications.remove(notification);
+                              });
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('通知已删除')));
+                            }
+                          },
                         ),
                       );
                     },
@@ -540,43 +449,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
-  String _formatTime(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _showClearConfirmDialog() async {
-    return showDialog(
+    final confirmed = await ConfirmDialog.show(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('清空所有通知'),
-            content: Text('确定要清空所有通知记录吗？此操作不可撤销。'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('取消'),
-              ),
-              TextButton(
-                onPressed: () {
-                  _notificationService.clearNotifications();
-                  Navigator.of(context).pop();
-                  setState(() {
-                    _notifications.clear();
-                    _filteredNotifications.clear();
-                  });
-                },
-                child: Text('确定', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
+      title: '清空所有通知',
+      content: '确定要清空所有通知记录吗？此操作不可撤销。',
+      isDanger: true,
     );
+
+    if (confirmed == true) {
+      _notificationService.clearNotifications();
+      setState(() {
+        _notifications.clear();
+        _filteredNotifications.clear();
+      });
+    }
   }
 
   // 显示应用筛选对话框
