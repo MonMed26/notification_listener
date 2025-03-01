@@ -11,12 +11,24 @@ import io.flutter.plugin.common.EventChannel
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import androidx.core.app.NotificationCompat
 
 class NotificationService : NotificationListenerService() {
     
     companion object {
         private const val TAG = "NotificationService"
         private var eventSink: EventChannel.EventSink? = null
+        
+        // 通知渠道ID
+        private const val CHANNEL_ID = "nl_system_notification_channel"
+        // 系统通知ID
+        private const val SYSTEM_NOTIFICATION_ID = 1001
         
         fun setEventSink(sink: EventChannel.EventSink?) {
             eventSink = sink
@@ -127,30 +139,72 @@ class NotificationService : NotificationListenerService() {
             Log.e(TAG, "处理通知时出错", e)
         }
     }
+
+    // 创建通知渠道（Android 8.0及以上需要）
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "系统通知"
+            val description = "通知监听服务的系统通知"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                this.description = description
+                enableLights(true)
+                lightColor = Color.RED
+                enableVibration(true)
+            }
+            
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "已创建通知渠道: $CHANNEL_ID")
+        }
+    }
     
-    // override fun onNotificationRemoved(sbn: StatusBarNotification) {
-    //     Log.d(TAG, "通知被移除: ${sbn.packageName}")
-        
-    //     try {
-    //         // 创建通知移除事件数据
-    //         val notificationData = JSONObject().apply {
-    //             put("id", sbn.id)
-    //             put("key", sbn.key)
-    //             put("packageName", sbn.packageName)
-    //             put("eventType", "removed")
-    //             put("timestamp", System.currentTimeMillis())
-    //         }
+    // 发送系统通知
+    private fun sendSystemNotification(title: String, message: String) {
+        try {
+            // 确保通知渠道已创建
+            createNotificationChannel()
             
-    //         // 从列表中移除通知
-    //         synchronized(notificationList) {
-    //             notificationList.removeAll { it.getString("key") == sbn.key }
-    //         }
+            // 创建打开应用的Intent
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+            )
             
-    //         // 发送通知移除事件到 Flutter
-    //         eventSink?.success(notificationData.toString())
+            // 构建通知
+            val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification) // 确保有这个图标资源
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
             
-    //     } catch (e: Exception) {
-    //         Log.e(TAG, "处理通知移除时出错", e)
-    //     }
-    // }
+            // 发送通知
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(SYSTEM_NOTIFICATION_ID, notificationBuilder.build())
+            
+            Log.d(TAG, "已发送系统通知: $title - $message")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送系统通知时出错", e)
+        }
+    }
+
+    override fun onListenerConnected() { 
+        Log.d(TAG, "通知监听器已连接")
+        sendSystemNotification("通知监听服务已启动", "通知监听服务已成功连接并开始工作")
+    }
+
+    override fun onListenerDisconnected() {
+        Log.d(TAG, "通知监听器已断开连接")
+        sendSystemNotification("通知监听服务已断开", "通知监听服务已断开连接，请检查权限设置")
+    }
+
 } 

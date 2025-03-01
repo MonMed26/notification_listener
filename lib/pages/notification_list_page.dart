@@ -5,6 +5,7 @@ import '../services/app_service.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/empty_notification_view.dart';
 import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificationListPage extends StatefulWidget {
   @override
@@ -19,6 +20,7 @@ class _NotificationListPageState extends State<NotificationListPage>
   List<NotificationItem> _notifications = [];
   List<NotificationItem> _filteredNotifications = [];
   bool _hasPermission = false;
+  bool _hasNotificationPermission = false;
 
   // 初始化为当天日期
   DateTime _todayStart = DateTime.now();
@@ -33,7 +35,42 @@ class _NotificationListPageState extends State<NotificationListPage>
       DateTime.now().month,
       DateTime.now().day,
     );
+
+    // 启动后自动请求通知权限
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestNotificationPermission();
+    });
+
     _initializeNotificationService();
+  }
+
+  // 请求通知权限
+  Future<void> _requestNotificationPermission() async {
+    try {
+      // 检查通知权限状态
+      final status = await Permission.notification.status;
+      setState(() {
+        _hasNotificationPermission = status.isGranted;
+      });
+
+      // 如果没有权限，则请求
+      if (!status.isGranted) {
+        final result = await Permission.notification.request();
+        setState(() {
+          _hasNotificationPermission = result.isGranted;
+        });
+      }
+
+      // 如果获得了通知权限，并且还没有通知监听服务权限，则提示用户去设置
+      if (_hasNotificationPermission && !_hasPermission) {
+        // 使用延迟，确保UI已完全加载
+        Future.delayed(Duration(milliseconds: 500), () {
+          _openSettings();
+        });
+      }
+    } catch (e) {
+      print('请求通知权限时出错: $e');
+    }
   }
 
   @override
@@ -48,6 +85,13 @@ class _NotificationListPageState extends State<NotificationListPage>
     if (state == AppLifecycleState.resumed) {
       // 应用回到前台，刷新通知状态
       _checkPermissionAndInitialize();
+
+      // 检查通知权限
+      Permission.notification.status.then((status) {
+        setState(() {
+          _hasNotificationPermission = status.isGranted;
+        });
+      });
     } else if (state == AppLifecycleState.paused) {
       // 应用进入后台，确保数据保存
       if (_hasPermission) {
@@ -161,8 +205,32 @@ class _NotificationListPageState extends State<NotificationListPage>
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[600]),
           ),
+          SizedBox(height: 8),
+          if (!_hasNotificationPermission)
+            Text(
+              '请允许应用发送通知，以便接收系统通知',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.orange[800],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           SizedBox(height: 24),
-          ElevatedButton(onPressed: _openSettings, child: Text('打开设置')),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!_hasNotificationPermission)
+                ElevatedButton(
+                  onPressed: _requestNotificationPermission,
+                  child: Text('请求通知权限'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                ),
+              SizedBox(width: 16),
+              ElevatedButton(onPressed: _openSettings, child: Text('打开通知监听设置')),
+            ],
+          ),
         ],
       ),
     );
