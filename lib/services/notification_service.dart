@@ -4,10 +4,14 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_item.dart';
+import 'permission_service.dart';
 
 class NotificationService {
   static const MethodChannel _channel = MethodChannel('notification_plugin');
   static const EventChannel _eventChannel = EventChannel('notification_events');
+
+  // 使用权限服务
+  final PermissionService _permissionService = PermissionService();
 
   // 通知流控制器
   final _notificationsController =
@@ -42,23 +46,14 @@ class NotificationService {
     _listenForNotifications();
   }
 
-  // 检查是否有通知监听权限
+  // 检查是否有通知监听权限 - 使用权限服务
   Future<bool> isNotificationServiceEnabled() async {
-    try {
-      return await _channel.invokeMethod('isNotificationServiceEnabled');
-    } catch (e) {
-      print('检查通知权限时出错: $e');
-      return false;
-    }
+    return await _permissionService.isNotificationServiceEnabled();
   }
 
-  // 打开通知设置页面
+  // 打开通知设置页面 - 使用权限服务
   Future<void> openNotificationSettings() async {
-    try {
-      await _channel.invokeMethod('openNotificationSettings');
-    } catch (e) {
-      print('打开通知设置时出错: $e');
-    }
+    await _permissionService.openNotificationServiceSettings();
   }
 
   // 获取当前所有通知

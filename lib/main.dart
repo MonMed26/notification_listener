@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'pages/notification_list_page.dart';
 import 'pages/statistics_page.dart';
 import 'pages/settings_page.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'services/permission_service.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 请求通知权限
-  await Permission.notification.request();
+  // 使用PermissionService请求必要权限
+  final permissionService = PermissionService();
+  await permissionService.checkAndRequestAllPermissions();
 
   runApp(MyApp());
 }

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
 import '../services/notification_service.dart';
 import '../services/app_service.dart';
+import '../services/permission_service.dart';
+import '../utils/permission_helper.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/empty_notification_view.dart';
 import 'dart:async';
-import 'package:permission_handler/permission_handler.dart';
 
 class NotificationListPage extends StatefulWidget {
   @override
@@ -16,6 +17,7 @@ class _NotificationListPageState extends State<NotificationListPage>
     with WidgetsBindingObserver {
   final NotificationService _notificationService = NotificationService();
   final AppService _appService = AppService();
+  final PermissionService _permissionService = PermissionService();
   StreamSubscription? _notificationSubscription;
   List<NotificationItem> _notifications = [];
   List<NotificationItem> _filteredNotifications = [];
@@ -38,30 +40,26 @@ class _NotificationListPageState extends State<NotificationListPage>
 
     // 启动后自动请求通知权限
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _requestNotificationPermission();
+      _requestPermissions();
     });
 
     _initializeNotificationService();
   }
 
-  // 请求通知权限
-  Future<void> _requestNotificationPermission() async {
+  // 请求所有必需的权限
+  Future<void> _requestPermissions() async {
     try {
-      // 检查通知权限状态
-      final status = await Permission.notification.status;
+      final permissionsMap =
+          await _permissionService.checkAndRequestAllPermissions();
+
       setState(() {
-        _hasNotificationPermission = status.isGranted;
+        _hasNotificationPermission =
+            permissionsMap['notificationPermission'] ?? false;
+        _hasPermission =
+            permissionsMap['notificationServicePermission'] ?? false;
       });
 
-      // 如果没有权限，则请求
-      if (!status.isGranted) {
-        final result = await Permission.notification.request();
-        setState(() {
-          _hasNotificationPermission = result.isGranted;
-        });
-      }
-
-      // 如果获得了通知权限，并且还没有通知监听服务权限，则提示用户去设置
+      // 如果获得了通知权限，但没有通知监听服务权限，则提示用户去设置
       if (_hasNotificationPermission && !_hasPermission) {
         // 使用延迟，确保UI已完全加载
         Future.delayed(Duration(milliseconds: 500), () {
@@ -69,7 +67,7 @@ class _NotificationListPageState extends State<NotificationListPage>
         });
       }
     } catch (e) {
-      print('请求通知权限时出错: $e');
+      print('请求权限时出错: $e');
     }
   }
 
@@ -87,9 +85,9 @@ class _NotificationListPageState extends State<NotificationListPage>
       _checkPermissionAndInitialize();
 
       // 检查通知权限
-      Permission.notification.status.then((status) {
+      _permissionService.hasNotificationPermission().then((hasPermission) {
         setState(() {
-          _hasNotificationPermission = status.isGranted;
+          _hasNotificationPermission = hasPermission;
         });
       });
     } else if (state == AppLifecycleState.paused) {
@@ -133,7 +131,7 @@ class _NotificationListPageState extends State<NotificationListPage>
 
   Future<void> _checkPermissionAndInitialize() async {
     final hasPermission =
-        await _notificationService.isNotificationServiceEnabled();
+        await _permissionService.isNotificationServiceEnabled();
 
     setState(() {
       _hasPermission = hasPermission;
@@ -189,50 +187,11 @@ class _NotificationListPageState extends State<NotificationListPage>
   }
 
   Widget _buildPermissionRequest() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.notifications_off, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            '需要通知访问权限',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '请点击下方按钮，然后在系统设置中启用通知访问权限',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          SizedBox(height: 8),
-          if (!_hasNotificationPermission)
-            Text(
-              '请允许应用发送通知，以便接收系统通知',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.orange[800],
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (!_hasNotificationPermission)
-                ElevatedButton(
-                  onPressed: _requestNotificationPermission,
-                  child: Text('请求通知权限'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
-                ),
-              SizedBox(width: 16),
-              ElevatedButton(onPressed: _openSettings, child: Text('打开通知监听设置')),
-            ],
-          ),
-        ],
-      ),
+    return PermissionHelper.buildPermissionRequestView(
+      hasNotificationPermission: _hasNotificationPermission,
+      hasNotificationServicePermission: _hasPermission,
+      onRequestPermission: _requestPermissions,
+      onOpenSettings: _openSettings,
     );
   }
 
@@ -279,6 +238,6 @@ class _NotificationListPageState extends State<NotificationListPage>
   }
 
   Future<void> _openSettings() async {
-    await _notificationService.openNotificationSettings();
+    await _permissionService.openNotificationServiceSettings();
   }
 }

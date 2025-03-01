@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 import '../services/app_service.dart';
+import '../services/permission_service.dart';
+import '../utils/permission_helper.dart';
 import 'app_selection_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,6 +15,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final NotificationService _notificationService = NotificationService();
   final AppService _appService = AppService();
+  final PermissionService _permissionService = PermissionService();
   bool _hasPermission = false;
   bool _isLoading = true;
   List<String> _selectedApps = [];
@@ -26,7 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _checkPermission() async {
     final hasPermission =
-        await _notificationService.isNotificationServiceEnabled();
+        await _permissionService.isNotificationServiceEnabled();
 
     setState(() {
       _hasPermission = hasPermission;
@@ -35,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _openSettings() async {
-    await _notificationService.openNotificationSettings();
+    await _permissionService.openNotificationServiceSettings();
   }
 
   Future<void> _loadSelectedApps() async {
@@ -106,7 +109,16 @@ class _SettingsPageState extends State<SettingsPage> {
         _hasPermission ? Icons.notifications_active : Icons.notifications_off,
         color: _hasPermission ? Colors.green : Colors.red,
       ),
-      trailing: TextButton(onPressed: _openSettings, child: Text('打开设置')),
+      trailing: TextButton(
+        onPressed: () {
+          // 使用PermissionHelper检查并请求权限
+          PermissionHelper.checkSpecificPermission(
+            context,
+            'notificationService',
+          );
+        },
+        child: Text('打开设置'),
+      ),
       onTap: _checkPermission,
     );
   }
