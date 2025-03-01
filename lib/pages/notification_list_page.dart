@@ -32,11 +32,7 @@ class _NotificationListPageState extends State<NotificationListPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // 设置今天的开始时间（凌晨）
-    _todayStart = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
+    _updateTimeInfo();
 
     // 启动后自动请求通知权限
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,6 +40,17 @@ class _NotificationListPageState extends State<NotificationListPage>
     });
 
     _initializeNotificationService();
+  }
+
+  // 更新时间信息
+  void _updateTimeInfo() {
+    setState(() {
+      _todayStart = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+      );
+    });
   }
 
   // 请求所有必需的权限
@@ -81,6 +88,9 @@ class _NotificationListPageState extends State<NotificationListPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // 更新时间信息
+      _updateTimeInfo();
+
       // 应用回到前台，刷新通知状态
       _checkPermissionAndInitialize();
 
