@@ -111,11 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       trailing: TextButton(
         onPressed: () {
-          // 使用PermissionHelper检查并请求权限
-          PermissionHelper.checkSpecificPermission(
-            context,
-            'notificationService',
-          );
+          _permissionService.openNotificationServiceSettings();
         },
         child: Text('打开设置'),
       ),
