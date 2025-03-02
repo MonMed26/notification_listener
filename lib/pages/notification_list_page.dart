@@ -3,6 +3,7 @@ import '../models/notification_item.dart';
 import '../services/notification_service.dart';
 import '../services/app_service.dart';
 import '../services/permission_service.dart';
+import '../services/settings_service.dart';
 import '../utils/permission_helper.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/empty_notification_view.dart';
@@ -18,11 +19,13 @@ class _NotificationListPageState extends State<NotificationListPage>
   final NotificationService _notificationService = NotificationService();
   final AppService _appService = AppService();
   final PermissionService _permissionService = PermissionService();
+  final SettingsService _settingsService = SettingsService();
   StreamSubscription? _notificationSubscription;
   List<NotificationItem> _notifications = [];
   List<NotificationItem> _filteredNotifications = [];
   bool _hasPermission = false;
   bool _hasNotificationPermission = false;
+  double _cardSizeScale = 1.0;
 
   // 初始化为当天日期
   DateTime _todayStart = DateTime.now();
@@ -33,6 +36,8 @@ class _NotificationListPageState extends State<NotificationListPage>
     WidgetsBinding.instance.addObserver(this);
     // 设置今天的开始时间（凌晨）
     _updateTimeInfo();
+    // 加载卡片大小设置
+    _loadCardSize();
 
     // 启动后自动请求通知权限
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,6 +56,18 @@ class _NotificationListPageState extends State<NotificationListPage>
         DateTime.now().day,
       );
     });
+  }
+
+  // 加载卡片大小设置
+  Future<void> _loadCardSize() async {
+    try {
+      final size = await _settingsService.getCardSize();
+      setState(() {
+        _cardSizeScale = size;
+      });
+    } catch (e) {
+      print('加载卡片大小设置失败: $e');
+    }
   }
 
   // 请求所有必需的权限
@@ -100,6 +117,9 @@ class _NotificationListPageState extends State<NotificationListPage>
           _hasNotificationPermission = hasPermission;
         });
       });
+
+      // 从设置页面返回时，重新加载卡片大小设置
+      _loadCardSize();
     } else if (state == AppLifecycleState.paused) {
       // 应用进入后台，确保数据保存
       if (_hasPermission) {
@@ -163,8 +183,10 @@ class _NotificationListPageState extends State<NotificationListPage>
   }
 
   // 导航到设置页面
-  void _navigateToSettings() {
-    Navigator.pushNamed(context, '/settings');
+  void _navigateToSettings() async {
+    await Navigator.pushNamed(context, '/settings');
+    // 从设置页面返回时，重新加载卡片大小设置
+    _loadCardSize();
   }
 
   @override
@@ -239,6 +261,7 @@ class _NotificationListPageState extends State<NotificationListPage>
                 notification: notification,
                 showDeleteButton: false, // 不显示删除按钮
                 cardStyle: NotificationCardStyle.large, // 使用大型卡片样式
+                sizeScale: _cardSizeScale, // 设置卡片大小
               );
             },
           ),

@@ -13,6 +13,7 @@ class NotificationCard extends StatelessWidget {
   final Function()? onDelete;
   final Function()? onTap;
   final NotificationCardStyle cardStyle;
+  final double sizeScale; // 添加大小缩放属性
 
   const NotificationCard({
     Key? key,
@@ -21,6 +22,7 @@ class NotificationCard extends StatelessWidget {
     this.onDelete,
     this.onTap,
     this.cardStyle = NotificationCardStyle.compact,
+    this.sizeScale = 1.0, // 默认缩放比例为1.0
   }) : super(key: key);
 
   @override
@@ -32,6 +34,7 @@ class NotificationCard extends StatelessWidget {
 
   // 小型卡片 (原有样式)
   Widget _buildCompactCard(BuildContext context) {
+    // 小型卡片不应用缩放
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
@@ -76,15 +79,21 @@ class NotificationCard extends StatelessWidget {
 
   // 大型卡片 (新样式)
   Widget _buildLargeCard(BuildContext context) {
+    // 根据sizeScale调整卡片大小
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: EdgeInsets.symmetric(
+        horizontal: 16 * sizeScale,
+        vertical: 10 * sizeScale,
+      ),
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16 * sizeScale),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16 * sizeScale),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(20.0 * sizeScale),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -93,15 +102,18 @@ class NotificationCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     backgroundColor: Theme.of(context).primaryColor,
-                    radius: 28,
+                    radius: 28 * sizeScale,
                     child: Text(
                       notification.appName.isNotEmpty
                           ? notification.appName[0]
                           : '?',
-                      style: TextStyle(color: Colors.white, fontSize: 20),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20 * sizeScale,
+                      ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  SizedBox(width: 16 * sizeScale),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,18 +121,18 @@ class NotificationCard extends StatelessWidget {
                         Text(
                           notification.appName,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 16 * sizeScale,
                             color: Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(height: 6),
+                        SizedBox(height: 6 * sizeScale),
                         Text(
                           notification.title.isNotEmpty
                               ? notification.title
                               : '无标题',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 20 * sizeScale,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
@@ -134,7 +146,7 @@ class NotificationCard extends StatelessWidget {
                       icon: Icon(
                         Icons.delete_outline,
                         color: Colors.grey,
-                        size: 24,
+                        size: 24 * sizeScale,
                       ),
                       onPressed: onDelete,
                       padding: EdgeInsets.zero,
@@ -142,21 +154,21 @@ class NotificationCard extends StatelessWidget {
                     ),
                 ],
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 16 * sizeScale),
               Text(
                 notification.text.isNotEmpty ? notification.text : '无内容',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(fontSize: 18 * sizeScale),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 16 * sizeScale),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
                     _getRelativeTime(notification.postTime),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 16 * sizeScale,
                       color: Colors.grey[600],
                       fontStyle: FontStyle.italic,
                     ),
