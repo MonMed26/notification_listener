@@ -22,7 +22,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'   # atau 'stable' tapi sebaiknya tentukan versi spesifik
+          flutter-version: '3.35.5'   # atau 'stable' tapi sebaiknya tentukan versi spesifik
           cache: true
 
       - name: Pub get
